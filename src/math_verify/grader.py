@@ -274,6 +274,19 @@ def sympy_compare_interval(
 def sympy_solve_and_compare(
     gold: Relational, pred: Relational, float_rounding: int, numeric_precision: int
 ) -> bool:
+    # SymPy's solve does not support equations where either side is a Tuple,
+    # Matrix or Set. Calling solve on such expressions leads to deprecation
+    # warnings (and potential errors) inside SymPy's solver when it tries to
+    # construct an Add expression with non-Expr arguments. We short-circuit in
+    # those cases and simply return False to avoid spamming warnings.
+    unsupported_types = (Tuple, MatrixBase, MatrixExpr, Set)
+    if any(
+        isinstance(side, unsupported_types)
+        for rel in (gold, pred)
+        for side in (rel.lhs, rel.rhs)
+    ):
+        return False
+
     solved_gold = list(ordered(solve(gold, gold.free_symbols)))
     solved_pred = list(ordered(solve(pred, pred.free_symbols)))
     # Equalities should return list of dicts of solutions

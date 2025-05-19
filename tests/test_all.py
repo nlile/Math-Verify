@@ -23,6 +23,7 @@
 import pytest
 import sympy
 import math
+import warnings
 
 from math_verify import ExprExtractionConfig, LatexExtractionConfig, parse, verify
 from math_verify.grader import sympy_expr_eq
@@ -925,3 +926,11 @@ def test_set_rel_assymetry(gold, pred, expected, allow_set_relation_comp):
 )
 def test_float_precision(gold, pred, expected):
     assert compare_strings(gold, pred, match_types=["latex", "expr"], precision=5) == expected
+
+
+def test_tuple_equation_no_warning():
+    """Ensure verifying tuple equations does not emit SymPy warnings"""
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("error")
+        assert verify(parse("$(p,q)=(3,2)$"), parse("$(p,q)=(3,2)$"))
+        assert len(w) == 0
