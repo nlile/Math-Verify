@@ -341,8 +341,11 @@ def sympy_compare_relational(
         pass
 
     # Check flipped inequalities (a <= b equals b >= a)
-    if INVERSE_RELATIONS[type(gold)] is type(pred) and are_flipped_inequalities_equal(  # type: ignore
-        gold, pred
+    inverse_type = INVERSE_RELATIONS.get(type(gold))
+    if (
+        inverse_type is not None
+        and inverse_type is type(pred)
+        and are_flipped_inequalities_equal(gold, pred)
     ):
         return True
 
