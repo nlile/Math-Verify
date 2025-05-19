@@ -198,11 +198,13 @@ def unwrap_eq(s):
         return take_last_relation(s).rhs
     return s
 
+
 def sort_key(x):
     try:
         return default_sort_key(unwrap_eq(x).evalf())
     except Exception:
         return default_sort_key(unwrap_eq(x))
+
 
 def sympy_deep_compare_set_and_tuple(
     gold: SympyFiniteSet | Tuple,
@@ -274,19 +276,32 @@ def sympy_compare_interval(
 def sympy_solve_and_compare(
     gold: Relational, pred: Relational, float_rounding: int, numeric_precision: int
 ) -> bool:
-    solved_gold = list(ordered(solve(gold, gold.free_symbols)))
-    solved_pred = list(ordered(solve(pred, pred.free_symbols)))
+    solved_gold = list(solve(gold, gold.free_symbols, dict=True))
+    solved_pred = list(solve(pred, pred.free_symbols, dict=True))
+
+    def _sort_solution(sol: dict) -> tuple:
+        return tuple(
+            sorted(
+                (k.sort_key(), v.sort_key() if hasattr(v, "sort_key") else v)
+                for k, v in sol.items()
+            )
+        )
+
     # Equalities should return list of dicts of solutions
     if isinstance(gold, Eq) and isinstance(pred, Eq):
+        sorted_gold = sorted(solved_gold, key=_sort_solution)
+        sorted_pred = sorted(solved_pred, key=_sort_solution)
         return all(
             all(
                 g_k == p_k
                 and sympy_expr_eq(g_v, p_v, float_rounding, numeric_precision)
                 for (g_k, g_v), (p_k, p_v) in zip(
-                    sorted(g.items()), sorted(p.items()), strict=True
+                    sorted(g.items(), key=lambda kv: kv[0].sort_key()),
+                    sorted(p.items(), key=lambda kv: kv[0].sort_key()),
+                    strict=True,
                 )
             )
-            for g, p in zip(ordered(solved_gold, keys=sort_key, default=False), ordered(solved_pred, keys=sort_key, default=False), strict=True)
+            for g, p in zip(sorted_gold, sorted_pred, strict=True)
         )
     else:
         return sympy_expr_eq(
@@ -623,9 +638,7 @@ def sympy_expr_eq(
             gold_variables = gold.free_symbols
             pred_variables = pred.free_symbols
             if len(gold_variables) == len(pred_variables):
-                pred = pred.subs(
-                    list(zip(pred_variables, gold_variables, strict=True))
-                )
+                pred = pred.subs(list(zip(pred_variables, gold_variables, strict=True)))
         except Exception:
             pass
 
@@ -816,7 +829,12 @@ def verify(
             target, (Basic, MatrixBase)
         ):
             return sympy_expr_eq(
-                gold, target, float_rounding, numeric_precision, allow_set_relation_comp, strict
+                gold,
+                target,
+                float_rounding,
+                numeric_precision,
+                allow_set_relation_comp,
+                strict,
             )
 
         # We don't support str / sympy.Expr comparison. Imo there is no point in doing this, as chances
