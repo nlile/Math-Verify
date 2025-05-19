@@ -178,13 +178,13 @@ Answer Extraction -> Expression Common Representation Conversion (SymPy) -> Gold
 
 ### Why is verify function not symmetric?
 
-The verify funciton, doesn't have symmetric behavior in two cases:
+The verify function doesn't have symmetric behavior in two cases:
 
 **1. Representation Asymmetry (Interval vs. Inequality):**
 - If the gold answer is an inequality (e.g., `1 < x < 2`) and the prediction is an interval (e.g., `(1,2)`), the verification will return `True`.
 - However, if the gold answer is an interval (e.g., `(1,2)`) and the prediction is the inequality (e.g., `1 < x < 2`), it will return `False`.
-- This asymmetry is designed to prevent models from simply returning the input inequality when a model is given task to solve an ineqaulity and instead of solving the inequality is just outputs the ineqaulity itself. If model can "learn" that it can just output the inequality without solving it, it will simply reward hack such samples.
-- This can be changed by passing `allow_set_relation_comp` to `verify`, which allows both directions of comparison. os comparison.
+ - This asymmetry is designed to prevent models from simply returning the input inequality when a model is given a task to solve an inequality and instead of solving the inequality just outputs the inequality itself. If a model can "learn" that it can just output the inequality without solving it, it will simply reward hack such samples.
+ - This can be changed by passing `allow_set_relation_comp` to `verify`, which allows both directions of comparison.
 
 **2. Solution Context Asymmetry (Number vs. Solution Chain):**
 - If the gold answer is a number (e.g., `101`) and the prediction is a solution chain leading to that number (e.g., `a+2z = 2z + a = 101`), the verification will return `True`.
