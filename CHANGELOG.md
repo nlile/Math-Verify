@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.7.1]
+### Added
+- Added `fallback_mode` parameter to `math_metric` to control extraction fallback behavior.
+
 ## [0.7.0]
 ### Added
 - Added CITATION.cff file with library metadata

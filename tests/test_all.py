@@ -24,6 +24,8 @@ import pytest
 import sympy
 import math
 
+from math_verify.metric import math_metric
+
 from math_verify import ExprExtractionConfig, LatexExtractionConfig, parse, verify
 from math_verify.grader import sympy_expr_eq
 
@@ -52,7 +54,13 @@ def compare_strings(
 
     gold_parsed = parse(gold, extraction_targets)
     pred_parsed = parse(pred, extraction_targets)
-    return verify(gold_parsed, pred_parsed, float_rounding=precision, strict=strict, allow_set_relation_comp=allow_set_relation_comp)
+    return verify(
+        gold_parsed,
+        pred_parsed,
+        float_rounding=precision,
+        strict=strict,
+        allow_set_relation_comp=allow_set_relation_comp,
+    )
 
 
 @pytest.mark.parametrize(
@@ -458,7 +466,6 @@ def test_latex_notation_math(gold, pred, expected):
         ("$z = 1 + 1 = 2$", "$z = 3+3 = 2$", 1),
         ("$z = 1 + 1 = 2$", "$z = 3+3 = 2$", 1),
         ("$2x+4y-3=0$", "$y=-\\frac{1}{2}x+\\frac{3}{4}$", 1),
-
         # Equation normalization
         ("$x^2/4 + y^2/3 = 1$", "$x^2/16 + y^2/12 = 1/4$", 1),
     ],
@@ -882,35 +889,23 @@ def test_math_extraction_additional_cases(gold, pred, expected):
     "gold, pred, expected, allow_set_relation_comp",
     [
         # No matter the arg, it should always try to compare as set if it's in the pred
-        (
-            r"$-2 \\le x \\le 7$",
-            r"$x \in [-2,7]$",
-            1,
-            True
-        ),
-        (
-            r"$-2 \\le x \\le 7$",
-            r"$x \in [-2,7]$",
-            1,
-            False
-        ),
+        (r"$-2 \\le x \\le 7$", r"$x \in [-2,7]$", 1, True),
+        (r"$-2 \\le x \\le 7$", r"$x \in [-2,7]$", 1, False),
         # If it's in gold it should only work if the arg is true
-        (
-            r"$x \in [-2,7]$",
-            r"$-2 \\le x \\le 7$",
-            1,
-            True
-        ),
-        (
-            r"$x \in [-2,7]$",
-            r"$-2 \\le x \\le 7$",
-            0,
-            False
-        ),
-    ]
+        (r"$x \in [-2,7]$", r"$-2 \\le x \\le 7$", 1, True),
+        (r"$x \in [-2,7]$", r"$-2 \\le x \\le 7$", 0, False),
+    ],
 )
 def test_set_rel_assymetry(gold, pred, expected, allow_set_relation_comp):
-    assert compare_strings(gold, pred, match_types=["latex"], allow_set_relation_comp=allow_set_relation_comp) == expected
+    assert (
+        compare_strings(
+            gold,
+            pred,
+            match_types=["latex"],
+            allow_set_relation_comp=allow_set_relation_comp,
+        )
+        == expected
+    )
 
 
 @pytest.mark.parametrize(
@@ -921,7 +916,29 @@ def test_set_rel_assymetry(gold, pred, expected, allow_set_relation_comp):
             f"$\\sqrt{{17}}$",
             1,
         )
-    ]
+    ],
 )
 def test_float_precision(gold, pred, expected):
-    assert compare_strings(gold, pred, match_types=["latex", "expr"], precision=5) == expected
+    assert (
+        compare_strings(gold, pred, match_types=["latex", "expr"], precision=5)
+        == expected
+    )
+
+
+def test_math_metric_fallback_modes():
+    metric_no_fb = math_metric(
+        gold_extraction_target=(LatexExtractionConfig(),),
+        pred_extraction_target=(LatexExtractionConfig(),),
+        fallback_mode="no_fallback",
+    )
+    metric_fb = math_metric(
+        gold_extraction_target=(LatexExtractionConfig(),),
+        pred_extraction_target=(LatexExtractionConfig(),),
+        fallback_mode="first_match",
+    )
+
+    gold = ["$?$"]
+    pred = ["$?$"]
+    with pytest.raises(ValueError):
+        metric_no_fb(gold, pred)
+    assert metric_fb(gold, pred)[0] == 1.0
