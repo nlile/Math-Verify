@@ -925,3 +925,9 @@ def test_set_rel_assymetry(gold, pred, expected, allow_set_relation_comp):
 )
 def test_float_precision(gold, pred, expected):
     assert compare_strings(gold, pred, match_types=["latex", "expr"], precision=5) == expected
+
+
+def test_not_equal_vs_less_than():
+    gold = sympy.Ne(1, 2, evaluate=False)
+    pred = sympy.Lt(1, 2)
+    assert verify(gold, pred) is False
