@@ -1,6 +1,6 @@
 ## Parser definition
 import logging
-from typing import Callable, Optional, Sequence
+from typing import Callable, Literal, Optional, Sequence
 
 from math_verify.grader import verify
 from math_verify.parser import ExprExtractionConfig, ExtractionTarget, parse
@@ -13,6 +13,7 @@ def math_metric(
     gold_extraction_target: Sequence[ExtractionTarget] = (ExprExtractionConfig(),),
     pred_extraction_target: Sequence[ExtractionTarget] = (ExprExtractionConfig(),),
     aggregation_function: Callable[[list[float]], float] = max,
+    fallback_mode: Literal["no_fallback", "first_match"] = "first_match",
     precision: int = 6,
 ) -> Callable[
     [list[str], list[str]], tuple[float, Optional[tuple[list[str], list[str]]]]
@@ -57,9 +58,13 @@ def math_metric(
         golds: list[str], predictions: list[str]
     ) -> tuple[float, Optional[tuple[list[str], list[str]]]]:
         extracted_predictions = [
-            parse(pred, pred_extraction_target) for pred in predictions
+            parse(pred, pred_extraction_target, fallback_mode=fallback_mode)
+            for pred in predictions
         ]
-        extracted_golds = [parse(gold, gold_extraction_target) for gold in golds]
+        extracted_golds = [
+            parse(gold, gold_extraction_target, fallback_mode=fallback_mode)
+            for gold in golds
+        ]
 
         # Assert on empty gold and warn on empty pred
         if any(len(g) == 0 for g in extracted_golds):

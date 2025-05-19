@@ -198,11 +198,13 @@ def unwrap_eq(s):
         return take_last_relation(s).rhs
     return s
 
+
 def sort_key(x):
     try:
         return default_sort_key(unwrap_eq(x).evalf())
     except Exception:
         return default_sort_key(unwrap_eq(x))
+
 
 def sympy_deep_compare_set_and_tuple(
     gold: SympyFiniteSet | Tuple,
@@ -286,7 +288,11 @@ def sympy_solve_and_compare(
                     sorted(g.items()), sorted(p.items()), strict=True
                 )
             )
-            for g, p in zip(ordered(solved_gold, keys=sort_key, default=False), ordered(solved_pred, keys=sort_key, default=False), strict=True)
+            for g, p in zip(
+                ordered(solved_gold, keys=sort_key, default=False),
+                ordered(solved_pred, keys=sort_key, default=False),
+                strict=True,
+            )
         )
     else:
         return sympy_expr_eq(
@@ -623,9 +629,7 @@ def sympy_expr_eq(
             gold_variables = gold.free_symbols
             pred_variables = pred.free_symbols
             if len(gold_variables) == len(pred_variables):
-                pred = pred.subs(
-                    list(zip(pred_variables, gold_variables, strict=True))
-                )
+                pred = pred.subs(list(zip(pred_variables, gold_variables, strict=True)))
         except Exception:
             pass
 
@@ -816,7 +820,12 @@ def verify(
             target, (Basic, MatrixBase)
         ):
             return sympy_expr_eq(
-                gold, target, float_rounding, numeric_precision, allow_set_relation_comp, strict
+                gold,
+                target,
+                float_rounding,
+                numeric_precision,
+                allow_set_relation_comp,
+                strict,
             )
 
         # We don't support str / sympy.Expr comparison. Imo there is no point in doing this, as chances
