@@ -672,8 +672,8 @@ def parse(
             - "first_match": Include the first string match even if parsing failed
         extraction_mode (Literal["first_match", "any_match"], optional): Strategy for extracting matches. Defaults to "any_match".
             - "first_match": Stop after finding the first match
-            - "any_match": Try to extract all possible matches, stops after first sucesful parsing attempt
-        parsing_timeout (int, optional): Maximum time in seconds to spend parsing each expression. Defaults to 3. Any timeout seconds > 0 or not None will result in the function to raise a ValueError if it's called in a threaded environment.
+            - "any_match": Try to extract all possible matches, stops after first successful parsing attempt
+        parsing_timeout (int, optional): Maximum time in seconds to spend parsing each expression. Defaults to 5. Any timeout seconds > 0 or not None will result in the function to raise a ValueError if it's called in a threaded environment.
 
     Returns:
         list: List of extracted predictions. Each prediction can be:

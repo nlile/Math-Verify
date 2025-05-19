@@ -9,7 +9,12 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Extract and evaluate answers using sympy')
     parser.add_argument('--input_csv', type=str, required=True, help='Path to input CSV file containing model outputs')
     parser.add_argument('--output_csv', type=str, required=True, help='Path to output CSV file for extracted answers')
-    parser.add_argument('--gold_is_latex', action='store_true', help='Use basic latex normalization', default=True)
+    parser.add_argument(
+        '--gold_is_latex',
+        action=argparse.BooleanOptionalAction,
+        help='Use basic latex normalization',
+        default=True,
+    )
     return parser.parse_args()
 
 def load_csv_data(csv_path: str) -> pd.DataFrame:

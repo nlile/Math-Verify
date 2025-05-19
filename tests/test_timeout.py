@@ -22,6 +22,7 @@ def test_timeout_expr(mock_parse_expr):
         fallback_mode="no_fallback",
     )
     assert x == []
+    mock_parse_expr.assert_called()
 
 
 @patch("math_verify.parser.latex2sympy")
@@ -41,6 +42,7 @@ def test_timeout_latex(mock_parse_latex):
         fallback_mode="no_fallback",
     )
     assert x == []
+    mock_parse_latex.assert_called()
 
 
 @patch("math_verify.grader.sympy_expr_eq")
@@ -54,3 +56,4 @@ def test_timeout_verify(mock_verify):
 
     gold = [parse("1+1")[0]]
     assert not verify(gold, gold, timeout_seconds=1)
+    mock_verify.assert_called()
