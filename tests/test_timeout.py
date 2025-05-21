@@ -2,7 +2,7 @@ import time
 from unittest.mock import patch
 
 from math_verify.grader import verify
-from math_verify.parser import parse
+from math_verify.parser import parse, parse_expr_cached, parse_latex_cached
 
 
 @patch("math_verify.parser.parse_expr")
@@ -15,6 +15,7 @@ def test_timeout_expr(mock_parse_expr):
     mock_parse_expr.side_effect = delayed_parse
 
     # Test that the timeout is triggered
+    parse_expr_cached.cache_clear()
     x = parse(
         "1+1",
         parsing_timeout=1,
@@ -34,6 +35,7 @@ def test_timeout_latex(mock_parse_latex):
     mock_parse_latex.side_effect = delayed_parse
 
     # Test that the timeout is triggered
+    parse_latex_cached.cache_clear()
     x = parse(
         "$1+1$",
         parsing_timeout=1,

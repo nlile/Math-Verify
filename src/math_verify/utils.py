@@ -22,6 +22,7 @@
 
 import logging
 import os
+import threading
 
 from math_verify.errors import TimeoutException
 
@@ -37,8 +38,11 @@ def timeout(timeout_seconds: int | None = 10):  # noqa: C901
             Defaults to 10 seconds.
 
     Notes:
-        On Unix systems, uses a signal-based alarm approach which is more efficient as it doesn't require spawning a new process.
-        On Windows systems, uses a multiprocessing-based approach since signal.alarm is not available. This will incur a huge performance penalty.
+        On Unix systems, the main thread uses a signal-based alarm approach which is more efficient as
+        it doesn't require spawning a new process. In non-main threads or on Windows, a
+        multiprocessing-based approach is used since ``signal.alarm`` is either unavailable or
+        unsupported. This will incur a performance penalty but allows using the decorator in a
+        multi-threaded environment.
     """
     if timeout_seconds is None or timeout_seconds <= 0:
 
@@ -47,32 +51,64 @@ def timeout(timeout_seconds: int | None = 10):  # noqa: C901
 
         return no_timeout_decorator
 
+    from multiprocessing import Process, Queue
+
     if os.name == "posix":
-        # Unix-like approach: signal.alarm
+        # Unix-like approach: signal.alarm when running in main thread,
+        # otherwise fall back to multiprocessing.
         import signal
 
         def decorator(func):
             def handler(signum, frame):
                 raise TimeoutException("Operation timed out!")
 
-            def wrapper(*args, **kwargs):
+            def run_with_signal(*args, **kwargs):
                 old_handler = signal.getsignal(signal.SIGALRM)
                 signal.signal(signal.SIGALRM, handler)
                 signal.alarm(timeout_seconds)
                 try:
                     return func(*args, **kwargs)
                 finally:
-                    # Cancel the alarm and restore previous handler
                     signal.alarm(0)
                     signal.signal(signal.SIGALRM, old_handler)
+
+            def run_with_process(*args, **kwargs):
+                q = Queue()
+
+                def run_func(q, args, kwargs):
+                    try:
+                        result = func(*args, **kwargs)
+                        q.put((True, result))
+                    except Exception as e:
+                        q.put((False, e))
+
+                p = Process(target=run_func, args=(q, args, kwargs))
+                p.start()
+                p.join(timeout_seconds)
+
+                if p.is_alive():
+                    p.terminate()
+                    p.join()
+                    raise TimeoutException("Operation timed out!")
+
+                success, value = q.get()
+                if success:
+                    return value
+                else:
+                    raise value
+
+            def wrapper(*args, **kwargs):
+                if threading.current_thread() is threading.main_thread():
+                    return run_with_signal(*args, **kwargs)
+                else:
+                    return run_with_process(*args, **kwargs)
 
             return wrapper
 
         return decorator
 
     else:
-        # Windows approach: use multiprocessing
-        from multiprocessing import Process, Queue
+        # Windows approach (or other OS without signal.alarm): multiprocessing
 
         def decorator(func):
             def wrapper(*args, **kwargs):
@@ -90,17 +126,14 @@ def timeout(timeout_seconds: int | None = 10):  # noqa: C901
                 p.join(timeout_seconds)
 
                 if p.is_alive():
-                    # Timeout: Terminate the process
                     p.terminate()
                     p.join()
                     raise TimeoutException("Operation timed out!")
 
-                # If we got here, the process completed in time.
                 success, value = q.get()
                 if success:
                     return value
                 else:
-                    # The child raised an exception; re-raise it here
                     raise value
 
             return wrapper

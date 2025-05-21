@@ -770,7 +770,9 @@ def verify(
             - In strict mode: Variables matter and sets are not comparable with tuples
             - In non-strict mode: Variables are matched by position and sets can be compared with tuples
         timeout_seconds: Maximum time in seconds to spend on any single comparison operation.
-            Defaults to 5 seconds. Any timeout seconds > 0 or not None will result in the function to raise a ValueError if it's called in a threaded environment.
+            Defaults to 5 seconds. When called from a non-main thread the timeout is enforced
+            using a subprocess which may be slightly slower but works correctly in a
+            multi-threaded environment.
         allow_set_relation_comp: Whether to allow set - relation comparison. Defaults to False.
             - If True, set - relation comparison will be allowed in all cases.
             - If False, set - relation comparison will be allowed only if the prediction is a set.
@@ -837,14 +839,9 @@ def verify(
         try:
             return compare_single_extraction(g, t)
 
-        except ValueError as e:
-            if str(e) == "signal only works in main thread of the main interpreter":
-                raise ValueError(
-                    "Math-Verify doesn't support threaded environment due to usage of signal.alarm() in timeout mechanism. If you need to run in multithreaded environment it's recommended to set the parsing_timeout=None, which will run without timeout (and signal handling). In this case you need to handle the timeouting yourself."
-                ) from e
-            else:
-                logger.exception("Error during comparison")
-                return False
+        except ValueError:
+            logger.exception("Error during comparison")
+            return False
         except Exception:
             #! Do not attempt to print out the g and t during handling of exception
             # Because a) it can throw an exception itself and b) it can cause it to be stuck forever during str conversion
